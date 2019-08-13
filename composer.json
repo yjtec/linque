@@ -1,0 +1,19 @@
+{
+    "name": "yjtec/linque",
+    "description": "The Linque queue.",
+    "keywords": ["queue", "Linque"],
+    "type": "library",
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "ax",
+            "email": "18716463@qq.com"
+        }
+    ],
+    "require": {},
+    "autoload": {
+        "psr-4": {
+            "Yjtec\\Linque\\": "src/"
+        }
+    }
+}
