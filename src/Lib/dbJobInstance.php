@@ -1,9 +1,8 @@
 <?php
 
-namespace \Yjtec\Linque\Lib;
+namespace Yjtec\Linque\Lib;
 
 use Config\Conf;
-use const LOGPATH;
 
 /**
  * 这一层是数据库和worker/jober中间的连接层

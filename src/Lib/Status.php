@@ -1,6 +1,6 @@
 <?php
 
-namespace \Yjtec\Linque\Lib;
+namespace Yjtec\Linque\Lib;
 
 /**
  * Job的状态类

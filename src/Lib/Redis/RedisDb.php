@@ -1,6 +1,6 @@
 <?php
 
-namespace \Yjtec\Linque\Lib\Redis;
+namespace Yjtec\Linque\Lib\Redis;
 
 use Exception;
 use \Yjtec\Linque\Lib\DbInterface;

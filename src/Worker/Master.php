@@ -1,6 +1,6 @@
 <?php
 
-namespace \Yjtec\Linque\Worker;
+namespace Yjtec\Linque\Worker;
 
 use Config\Conf;
 use \Yjtec\Linque\Lib\ProcLine;
