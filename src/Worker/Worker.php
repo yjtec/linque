@@ -2,8 +2,11 @@
 
 namespace Yjtec\Linque\Worker;
 
-use \Yjtec\Linque\Lib\dbJobInstance;
-use \Yjtec\Linque\Lib\ProcLine;
+use Exception;
+use Yjtec\Linque\Config\Conf;
+use Yjtec\Linque\Lib\dbJobInstance;
+use Yjtec\Linque\Lib\ProcLine;
+use const LOGPATH;
 
 /**
  * 执行job的子进程
@@ -22,42 +25,46 @@ class Worker {
     private $interval; //循环时间间隔
     private $DbInstance = null; //数据库操作实例
     private $procLine = null; //日志记录
+    private $system;
 
     public function __construct($Que, $interval) {
         $this->Que = $Que;
         $this->interval = $interval;
         $this->DbInstance = new dbJobInstance();
         $this->procLine = new ProcLine(LOGPATH);
+        $this->system = Conf::getSystemPlatform();
     }
 
     public function startWork() {
         //此处已经是子进程的子进程了,可以在此处进行下一步逻辑了
-        $this->procLine->EchoAndLog('子进程开始循环PID=' . posix_getpid() . PHP_EOL);
+        $this->procLine->EchoAndLog('子进程开始循环PID=' . $this->getMyPid() . PHP_EOL);
         while (1) {
-            pcntl_signal_dispatch(); //查看信号队列
-            $this->doAJob(); //执行一个job
+//            pcntl_signal_dispatch(); //查看信号队列
+            if ($job = $this->getAJob()) {
+                $this->procLine->EchoAndLog('子进程即将开始一个新Job,PID=' . $this->getMyPid() . '，JobInfo:' . json_encode($job) . PHP_EOL);
+                try {
+                    $this->run($job); //执行
+                } catch (Exception $ex) {
+                    $this->procLine->EchoAndLog('新Job执行发生异常PID=' . $this->getMyPid() . ':' . json_encode($ex) . PHP_EOL);
+                }
+                $this->procLine->EchoAndLog('新Job执行结束PID=' . $this->getMyPid() . ',JobId=' . $job['id'] . PHP_EOL);
+            }
+
             usleep($this->interval * 1000000); //休眠多少秒
         }
     }
 
     /**
-     * 检查job
+     * 获取job
      * @param type $job
      * @return boolean
      */
-    private function doAJob() {
+    private function getAJob() {
         $job = $this->DbInstance->popJob($this->Que);
         if (!$job) {
             return false;
         }
-        $this->procLine->EchoAndLog('子进程即将开始一个新Job,PID=' . posix_getpid() . 'JobInfo:' . json_encode($job) . PHP_EOL);
-        try {
-            return $this->run($job); //执行
-        } catch (Exception $ex) {
-            $this->procLine->EchoAndLog('新Job执行发生异常PID=' . posix_getpid() . ':' . json_encode($ex) . PHP_EOL);
-        }
-        $this->procLine->EchoAndLog('新Job执行结束PID=' . posix_getpid() . ',JobId=' . $job['id'] . PHP_EOL);
-        return false;
+        return $job;
     }
 
     /**
@@ -69,7 +76,11 @@ class Worker {
     public function run($job) {
         $this->procLine->EchoAndLog('用户APP开始执行:' . $job['id'] . PHP_EOL);
         $this->DbInstance->workingOn($job); //开始执行
-        $rs = $this->runApp($job);
+        if ($this->system == 'linux') {
+            $rs = $this->forkProc($job);
+        } else {
+            $rs = $this->appStart($job);
+        }
         if ($rs) {
             $this->procLine->EchoAndLog('用户APP执行成功:' . $job['id'] . PHP_EOL);
             $this->DbInstance->workingDone($job); //执行完成
@@ -87,7 +98,7 @@ class Worker {
      * @param type $job
      * @return boolean
      */
-    public function runApp($job) {
+    public function forkProc($job) {
         $pid = pcntl_fork();
         if ($pid > 0) {//原进程，拿到子进程的pid
             $status = null;
@@ -96,20 +107,25 @@ class Worker {
                 return true;
             }
         } elseif ($pid == 0) {
-            $instance = $this->getAppInstance($job);
-            if ($instance && is_callable(array($instance, 'before'))) {
-                $instance->before(); //执行用户的before方法
-            }
-            if ($instance && is_callable(array($instance, 'run'))) {
-                $instance->run(); //执行用户的run方法
-            }
-            if ($instance && is_callable(array($instance, 'after'))) {
-                $instance->after(); //执行用户的after方法
-            }
-            unset($instance); //用完销毁
-            exit(0);
+            $this->appStart($job);
+            exit(0); //这里必须退出子进程，这个0对应上边的pantl_wait的status
         }
         return false;
+    }
+
+    public function appStart($job) {
+        $instance = $this->getAppInstance($job);
+        if ($instance && is_callable(array($instance, 'before'))) {
+            $instance->before(); //执行用户的before方法
+        }
+        if ($instance && is_callable(array($instance, 'run'))) {
+            $instance->run(); //执行用户的run方法
+        }
+        if ($instance && is_callable(array($instance, 'after'))) {
+            $instance->after(); //执行用户的after方法
+        }
+        unset($instance); //用完销毁
+        return true;
     }
 
     /**
@@ -129,6 +145,10 @@ class Worker {
             return false;
         }
         return new $job['class']($job); //实例化job
+    }
+
+    public function getMyPid() {
+        return $this->system == 'linux' ? posix_getpid() : getmypid();
     }
 
 }

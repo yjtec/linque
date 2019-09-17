@@ -2,7 +2,7 @@
 
 namespace Yjtec\Linque\Worker;
 
-use Config\Conf;
+use \Yjtec\Linque\Config\Conf;
 use \Yjtec\Linque\Lib\ProcLine;
 use const LOGPATH;
 
@@ -22,6 +22,7 @@ class Master {
     private $masterPid = 0; //主进程pid
 //    private $slavePid = 0; //子进程pid
     private $procLine; //日志处理类
+    private $system;
 
     public function __construct($Que, $interval = 5, $daemonize = 0) {
         $this->Que = strpos($Que, ',') === false ? array($Que) : explode(',', $Que);
@@ -31,34 +32,41 @@ class Master {
         $this->interval = $interval ? $interval : 5;
         $this->daemonize = $daemonize;
         $this->procLine = new ProcLine(LOGPATH);
+        $this->system = Conf::getSystemPlatform();
     }
 
     /**
      * 主进程开始
      */
     public function startWork() {
+        if ($this->system == 'linux') {
 //        $this->daemonize(); //脱离控制台
-        $this->masterPid = posix_getpid();
+            $this->masterPid = posix_getpid();
 //        $this->registerSigHandlers();
-        //此处已经是子进程的子进程了,可以在此处进行下一步逻辑了
-        $this->displayUI(); //显示方框
-        while (1) {
-            foreach ($this->Que as &$queue) {
-                if (!$queue['pid']) {
-                    $pid = pcntl_fork();
-                    if ($pid == 0) {
-                        return $this->slaverMonitor($queue['que']); //子进程
-                    } elseif ($pid > 0) {
-                        $queue['pid'] = $pid;
-                        $this->procLine->EchoAndLog("创建子进程成功Pid=" . $pid . ',监控队列' . $queue['que'] . PHP_EOL);
-                    } else {
-                        $this->procLine->EchoAndLog('创建子进程出错,请检查PHP配置' . PHP_EOL);
-                        exit(0);
+            //此处已经是子进程的子进程了,可以在此处进行下一步逻辑了
+            $this->displayUI(); //显示方框
+            while (1) {
+                foreach ($this->Que as &$queue) {
+                    if (!$queue['pid']) {
+                        $pid = pcntl_fork();
+                        if ($pid == 0) {
+                            return $this->slaverMonitor($queue['que']); //子进程
+                        } elseif ($pid > 0) {
+                            $queue['pid'] = $pid;
+                            $this->procLine->EchoAndLog("创建子进程成功Pid=" . $pid . ',监控队列' . $queue['que'] . PHP_EOL);
+                        } else {
+                            $this->procLine->EchoAndLog('创建子进程出错,请检查PHP配置' . PHP_EOL);
+                            exit(0);
+                        }
                     }
                 }
+                $this->masterMonitor(); //主进程,循环/等待,此处不能return
+                sleep($this->interval);
             }
-            $this->masterMonitor(); //主进程,循环/等待,此处不能return
-            sleep($this->interval);
+        } else {
+            $this->masterPid = getmygid();
+            $this->displayUI(); //显示方框
+            return $this->slaverMonitor($this->Que[0]['que']); //子进程
         }
     }
 
@@ -115,11 +123,9 @@ class Master {
         $this->procLine->initDisplay("Queue:" . implode(',', $questr));
         $this->procLine->initDisplay("Interval:" . $this->interval . 's');
         $this->procLine->initDisplay("LogPath:" . LOGPATH);
-        $config = Conf::getConf();
-        $dbConf = $config[ucwords(strtolower($config['DBTYPE']))];
         $this->procLine->initDisplay("─数据库配置────────────────────────────────────────────────────────");
-        $this->procLine->initDisplay("DBTYPE:" . ucwords(strtolower($config['DBTYPE'])));
-        foreach ($dbConf as $k => $v) {
+        $config = Conf::getConfig();
+        foreach ($config as $k => $v) {
             if (strtolower($k) == 'pwd') {
                 $v = '***';
             }
@@ -128,7 +134,7 @@ class Master {
         $this->procLine->displayUI();
     }
 
-/////////////////////////////信号也没用上
+/////////////////////////////乱七八糟的方法
 //    /**
 //     * 注册信号
 //     */

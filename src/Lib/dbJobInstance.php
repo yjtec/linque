@@ -2,7 +2,9 @@
 
 namespace Yjtec\Linque\Lib;
 
-use Config\Conf;
+use Yjtec\Linque\Config\Conf;
+use Yjtec\Linque\Lib\Redis\RedisDb;
+use const LOGPATH;
 
 /**
  * 这一层是数据库和worker/jober中间的连接层
@@ -130,15 +132,15 @@ class dbJobInstance {
 
     /**
      * 实例化不同的数据库,目前默认为redis,后可改为mysql,文件等方式
-     * @param type $dbConf
+     * @param type $config
      * @return RedisDb
      */
     public function doDbInstance() {
-        $dbConf = Conf::getConf();
+        $dbConf = Conf::getConfig();
         if ($dbConf) {
             $Dbtype = ucfirst(strtolower($dbConf['DBTYPE']));
             $class = "Yjtec\\Linque\\Lib\\" . $Dbtype . "\\" . $Dbtype . "Db";
-            return new $class($dbConf[$Dbtype]);
+            return new $class($dbConf);
         } else {
             die('数据库配置无效');
         }
