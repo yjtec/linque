@@ -11,11 +11,9 @@ define('LineQue', __DIR__);
 define('APP', __DIR__ . '/App');
 define('LOGPATH', LineQue . '/LineQue.log');
 
-require_once __DIR__ . '/Lib/Autoload.php';
-if (!class_exists('Yjtec\Linque\Lib\Autoload', false)) {
-    die('自动加载类错误' . PHP_EOL);
-}
-\Yjtec\Linque\Lib\Autoload::start();
+require_once './Autoload.php';
+spl_autoload_register('\Yjtec\Linque\Autoload::autoload');
+
 $DbInstance = new \Yjtec\Linque\Lib\dbJobInstance();
-$jobid = $DbInstance->addJob('default', '\App\UserApp', array('img' => time()));
+$jobid = $DbInstance->addJob('default', '\Yjtec\Linque\App\UserApp', array('img' => time()));
 print_r($jobid . PHP_EOL);
