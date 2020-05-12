@@ -67,7 +67,7 @@ class RedisD {
     }
 
     public function delKey($key) {
-        return $this->redis->delete($key);
+        return $this->redis->del($key);
     }
 
     public function incrStat($key, $step = 1) {
