@@ -26,6 +26,7 @@ class Worker {
     private $DbInstance = null; //数据库操作实例
     private $procLine = null; //日志记录
     private $system;
+	public $masterPid;
 
     public function __construct($Que, $interval) {
         $this->Que = $Que;
