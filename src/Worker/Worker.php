@@ -39,6 +39,9 @@ class Worker {
         //此处已经是子进程的子进程了,可以在此处进行下一步逻辑了
         $this->procLine->EchoAndLog('子进程开始循环PID=' . $this->getMyPid() . PHP_EOL);
         while (1) {
+			if($this->isParentDead()){
+				return true;
+			}
 //            pcntl_signal_dispatch(); //查看信号队列
             if ($job = $this->getAJob()) {
                 $this->procLine->EchoAndLog('子进程即将开始一个新Job,PID=' . $this->getMyPid() . '，JobInfo:' . json_encode($job) . PHP_EOL);
@@ -151,4 +154,24 @@ class Worker {
         return $this->system == 'linux' ? posix_getpid() : getmypid();
     }
 
+	public function isParentDead(){
+		if($this->system == 'linux'&&is_callable("exec")&&$this->masterPid){
+			exec("ps p ".$this->masterPid."|awk '{if(NR>1)print}'",$str,$re);
+			if($re==0){
+				if(!$str){
+					$this->procLine->EchoAndLog('未检测到父进程，子进程将退出:' . $this->getMyPid() . PHP_EOL);
+					return true;
+				}
+				$arg=explode(" ",trim(preg_replace("/\s(?=\s)/","\\1", $str[0])));
+				unset($arg[0],$arg[1],$arg[2],$arg[3],$arg[4]);
+				$arg=array_values($arg);
+				if($arg==$_SERVER['argv']){
+					return false;
+				}
+				$this->procLine->EchoAndLog('检测到一个奇怪的父进程，子进程将退出:' . $this->getMyPid()."，进程参数：".json_encode($str) . PHP_EOL);
+				return true;
+			}
+		}
+		return false;
+	}
 }

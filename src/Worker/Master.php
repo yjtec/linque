@@ -98,8 +98,8 @@ class Master {
     public function slaverMonitor($que) {
         usleep(10000); //稍微等几毫秒
         $SlaveWorker = new Worker($que, $this->interval);
-        $SlaveWorker->startWork();
-        return true;
+		$SlaveWorker->masterPid=$this->masterPid;
+        return $SlaveWorker->startWork();
     }
 
     /**
