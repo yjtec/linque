@@ -103,8 +103,17 @@ class RedisDb implements DbInterface {
     }
 
     /**
+     * 获取队列的前100
+     * @param type $queue
+     * @return type
+     */
+    public function get100Jobs($queue) {
+        return $this->redis->getListLrange('lineque:' . $queue, 0, 100);
+    }
+
+    /**
      * 一个整型的key/value,增加他的值
-     * @param type $key
+     * @param type $status
      * @param type $step
      * @return type
      */
@@ -114,7 +123,7 @@ class RedisDb implements DbInterface {
 
     /**
      * 一个整型的key/value,减少他的值
-     * @param type $key
+     * @param type $status
      * @param type $step
      * @return type
      */

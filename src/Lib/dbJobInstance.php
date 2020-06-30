@@ -131,6 +131,18 @@ class dbJobInstance {
     }
 
     /**
+     * 获取队列的前100个（用于做队列排名）
+     * @param type $queue
+     * @return boolean
+     */
+    public function get100Jobs($queue) {
+        if (!$queue) {
+            return false;
+        }
+        return $this->dbInstance->get100Jobs($queue);
+    }
+
+    /**
      * 实例化不同的数据库,目前默认为redis,后可改为mysql,文件等方式
      * @param type $config
      * @return RedisDb

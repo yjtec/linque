@@ -78,6 +78,10 @@ class RedisD {
         return (bool) $this->redis->decrby($key, $step);
     }
 
+    public function getListLrange($key, $start = 0, $end = 100) {
+        return $this->redis->lrange($key, $start, $end);
+    }
+
     public function closeDbInstance() {
         $this->redis->close();
         $this->redis = null;
