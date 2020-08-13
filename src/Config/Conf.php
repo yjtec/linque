@@ -18,7 +18,14 @@ class Conf {
     public static $Config;
 
     public static function setConfig($config) {
-        self::$Config = array_merge(self::$Config, $config);
+        if ($config) {
+            if (self::$Config) {
+                self::$Config = array_merge(self::$Config, $config);
+            } else {
+                self::$Config = $config;
+            }
+        }
+        return self::$Config;
     }
 
     public static function getConfig() {
