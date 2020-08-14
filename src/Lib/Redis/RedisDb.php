@@ -112,6 +112,15 @@ class RedisDb implements DbInterface {
     }
 
     /**
+     * 获取队列的总长度
+     * @param type $queue
+     * @return type
+     */
+    public function getListLen($queue) {
+        return $this->redis->getListLen('lineque:' . $queue);
+    }
+
+    /**
      * 一个整型的key/value,增加他的值
      * @param type $status
      * @param type $step

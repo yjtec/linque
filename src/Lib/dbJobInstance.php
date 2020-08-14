@@ -143,6 +143,15 @@ class dbJobInstance {
     }
 
     /**
+     * 获取队列的总长度
+     * @param type $queue
+     * @return type
+     */
+    public function getListLen($queue) {
+        return $this->dbInstance->getListLen($queue);
+    }
+
+    /**
      * 实例化不同的数据库,目前默认为redis,后可改为mysql,文件等方式
      * @param type $config
      * @return RedisDb

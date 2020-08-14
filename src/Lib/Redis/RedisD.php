@@ -82,6 +82,10 @@ class RedisD {
         return $this->redis->lrange($key, $start, $end);
     }
 
+    public function getListLen($key) {
+        return $this->redis->llen($key);
+    }
+    
     public function closeDbInstance() {
         $this->redis->close();
         $this->redis = null;
