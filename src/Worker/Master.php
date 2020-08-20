@@ -45,13 +45,16 @@ class Master {
 //        $this->registerSigHandlers();
             //此处已经是子进程的子进程了,可以在此处进行下一步逻辑了
             $this->displayUI(); //显示方框
+            $procTitle = 'Linque '. implode(' ',$_SERVER['argv']);
             while (1) {
                 foreach ($this->Que as &$queue) {
                     if (!$queue['pid']) {
                         $pid = pcntl_fork();
                         if ($pid == 0) {
+                            cli_set_process_title($procTitle . ' : ' . $queue['que']);
                             return $this->slaverMonitor($queue['que']); //子进程
                         } elseif ($pid > 0) {
+                            cli_set_process_title($procTitle . ' : Master');
                             $queue['pid'] = $pid;
                             $this->procLine->EchoAndLog("创建子进程成功Pid=" . $pid . ',监控队列' . $queue['que'] . PHP_EOL);
                         } else {
