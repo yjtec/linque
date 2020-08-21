@@ -58,7 +58,7 @@ class ProcLine {
      * @param $msg
      */
     public function EchoAndLog($msg) {
-        echo $msg;
+        echo '[' . date('Y/m/d H:i:s') . ']linque ' . $msg;
         $this->log($msg);
     }
 
@@ -70,7 +70,7 @@ class ProcLine {
      */
     public function log($msg) {
         if ($this->logFile) {
-            file_put_contents((string) $this->logFile, date('Y-m-d H:i:s') . ' ' . $msg, FILE_APPEND | LOCK_EX);
+            file_put_contents((string) $this->logFile, '[' . date('Y/m/d H:i:s') . ']linque ' . ' ' . $msg, FILE_APPEND | LOCK_EX);
         }
     }
 

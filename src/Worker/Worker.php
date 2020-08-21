@@ -38,20 +38,20 @@ class Worker {
 
     public function startWork() {
         //此处已经是子进程的子进程了,可以在此处进行下一步逻辑了
-        $this->procLine->EchoAndLog('子进程开始循环PID=' . $this->getMyPid() . PHP_EOL);
+        $this->procLine->EchoAndLog('队列主进程开始守护，PID=' . $this->getMyPid() . PHP_EOL);
         while (1) {
             if ($this->isParentDead()) {
                 return true;
             }
 //            pcntl_signal_dispatch(); //查看信号队列
             if ($job = $this->getAJob()) {
-                $this->procLine->EchoAndLog('子进程即将开始一个新Job,PID=' . $this->getMyPid() . '，JobInfo:' . json_encode($job) . PHP_EOL);
+                $this->procLine->EchoAndLog('队列主进程(' . $this->getMyPid() . ')获取到Job:' . json_encode($job) . PHP_EOL);
                 try {
                     $this->run($job); //执行
                 } catch (Exception $ex) {
-                    $this->procLine->EchoAndLog('新Job执行发生异常PID=' . $this->getMyPid() . ':' . json_encode($ex) . PHP_EOL);
+                    $this->procLine->EchoAndLog('队列主进程(' . $this->getMyPid() . ')执行Job发生异常:' . json_encode($ex) . PHP_EOL);
                 }
-                $this->procLine->EchoAndLog('新Job执行结束PID=' . $this->getMyPid() . ',JobId=' . $job['id'] . PHP_EOL);
+                $this->procLine->EchoAndLog('队列主进程(' . $this->getMyPid() . ')执行Job结束:' . $job['id'] . PHP_EOL);
             }
 
             usleep($this->interval * 1000000); //休眠多少秒
@@ -78,17 +78,22 @@ class Worker {
      * @return boolean
      */
     public function run($job) {
-        $this->procLine->EchoAndLog('用户APP开始执行:' . $job['id'] . PHP_EOL);
+        $this->procLine->EchoAndLog('用户APP准备执行:' . $job['id'] . PHP_EOL);
         $this->DbInstance->workingOn($job); //开始执行
-        if ($this->system == 'linux') {
-            $rs = $this->forkProc($job);
-        } else {
-            $rs = $this->appStart($job);
-        }
-        if ($rs) {
-            $this->procLine->EchoAndLog('用户APP执行成功:' . $job['id'] . PHP_EOL);
-            $this->DbInstance->workingDone($job); //执行完成
-            return true;
+        try {
+            if ($this->system == 'linux') {
+                $rs = $this->forkProc($job);
+            } else {
+                $rs = $this->appStart($job);
+            }
+            if ($rs) {
+                $this->procLine->EchoAndLog('用户APP执行成功:' . $job['id'] . PHP_EOL);
+                $this->DbInstance->workingDone($job); //执行完成
+                return true;
+            }
+        } catch (Exception $ex) {
+            $rs = false;
+            $this->procLine->EchoAndLog('用户App执行异常:' . $job['id'] . '，异常消息：' . json_encode($ex) . PHP_EOL);
         }
         $this->DbInstance->workingFail($job); //执行失败
         $this->procLine->EchoAndLog('用户App执行失败:' . $job['id'] . PHP_EOL);
@@ -103,15 +108,21 @@ class Worker {
      * @return boolean
      */
     public function forkProc($job) {
+        $this->procLine->EchoAndLog('队列主进程(' . $this->getMyPid() . ')准备分离出用户APP子进程执行任务:' . $job['id'] . PHP_EOL);
         $pid = pcntl_fork();
         if ($pid > 0) {//原进程，拿到子进程的pid
             $status = null;
             $exitPid = pcntl_wait($status); //等待子进程的信号
+            $this->procLine->EchoAndLog('队列主进程获取到用户APP子进程执行完成信号:' . $status . ',exitPid:' . $exitPid . PHP_EOL);
             if ($exitPid && $status == 0) {
                 return true;
             }
-        } elseif ($pid == 0) {
+        } elseif ($pid == 0) {//子进程
+            $this->procLine->EchoAndLog('用户APP子进程分离成功:' . $this->getMyPid() . PHP_EOL);
+            $title = cli_get_process_title();
+            cli_set_process_title($title . ' doing:' . $job['id']);
             $this->appStart($job);
+            $this->procLine->EchoAndLog('用户APP子进程执行结束:' . $this->getMyPid() . PHP_EOL);
             exit(0); //这里必须退出子进程，这个0对应上边的pantl_wait的status
         }
         return false;
@@ -120,13 +131,19 @@ class Worker {
     public function appStart($job) {
         $instance = $this->getAppInstance($job);
         if ($instance && is_callable(array($instance, 'before'))) {
+            $this->procLine->EchoAndLog('用户APP开始执行before方法' . PHP_EOL);
             $instance->before(); //执行用户的before方法
+            $this->procLine->EchoAndLog('用户APP结束执行before方法' . PHP_EOL);
         }
         if ($instance && is_callable(array($instance, 'run'))) {
+            $this->procLine->EchoAndLog('用户APP开始执行run方法' . PHP_EOL);
             $instance->run(); //执行用户的run方法
+            $this->procLine->EchoAndLog('用户APP结束执行run方法' . PHP_EOL);
         }
         if ($instance && is_callable(array($instance, 'after'))) {
+            $this->procLine->EchoAndLog('用户APP开始执行after方法' . PHP_EOL);
             $instance->after(); //执行用户的after方法
+            $this->procLine->EchoAndLog('用户APP结束执行after方法' . PHP_EOL);
         }
         unset($instance); //用完销毁
         return true;
@@ -160,7 +177,7 @@ class Worker {
             $cmd = "ps -ef| grep " . $this->getMyPid() . "|grep -v grep|awk '{print$3}'";
             exec($cmd, $str, $re);
             if ($re != 0 || !$str || !isset($str[0]) || $this->masterPid != intval($str[0])) {
-                $this->procLine->EchoAndLog('未检测到父进程，父进程ID：' . $this->masterPid.'，子进程将退出：' . $this->getMyPid() . "，命令：" . $cmd . "，进程参数：" . json_encode($str) . PHP_EOL);
+                $this->procLine->EchoAndLog('未检测到父进程，父进程ID：' . $this->masterPid . '，子进程将退出：' . $this->getMyPid() . "，命令：" . $cmd . "，进程参数：" . json_encode($str) . PHP_EOL);
                 return true;
             }
         }

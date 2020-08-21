@@ -45,20 +45,20 @@ class Master {
 //        $this->registerSigHandlers();
             //此处已经是子进程的子进程了,可以在此处进行下一步逻辑了
             $this->displayUI(); //显示方框
-            $procTitle = 'linque '. implode(' ',$_SERVER['argv']);
+            $procTitle = 'linque ' . implode(' ', $_SERVER['argv']);
+            cli_set_process_title($procTitle . '(master)');
             while (1) {
                 foreach ($this->Que as &$queue) {
                     if (!$queue['pid']) {
                         $pid = pcntl_fork();
-                        if ($pid == 0) {
-                            cli_set_process_title($procTitle . ' : ' . $queue['que']);
+                        if ($pid == 0) {//队列主进程
+                            cli_set_process_title($procTitle . '(' . $queue['que'] . ')');
                             return $this->slaverMonitor($queue['que']); //子进程
-                        } elseif ($pid > 0) {
-                            cli_set_process_title($procTitle . ' : master');
+                        } elseif ($pid > 0) {//原始主进程
                             $queue['pid'] = $pid;
-                            $this->procLine->EchoAndLog("创建子进程成功Pid=" . $pid . ',监控队列' . $queue['que'] . PHP_EOL);
+                            $this->procLine->EchoAndLog("创建队列主进程成功，Pid=" . $pid . ',监控队列' . $queue['que'] . PHP_EOL);
                         } else {
-                            $this->procLine->EchoAndLog('创建子进程出错,请检查PHP配置' . PHP_EOL);
+                            $this->procLine->EchoAndLog('创建队列主进程出错,请检查PHP配置' . PHP_EOL);
                             exit(0);
                         }
                     }
@@ -84,7 +84,7 @@ class Master {
 //        pcntl_signal_dispatch();
         $exitPid = pcntl_wait($status);
         if ($exitPid > 0) {//$pid退出的子进程的编号
-            $this->procLine->log('子进程意外退出Pid=' . $exitPid . '退出信号' . $status . PHP_EOL);
+            $this->procLine->log('队列主进程意外退出Pid=' . $exitPid . '退出信号' . $status . PHP_EOL);
             foreach ($this->Que as &$queue) {
                 if ($queue['pid'] == $exitPid) {
                     $queue['pid'] = 0;
@@ -101,7 +101,7 @@ class Master {
     public function slaverMonitor($que) {
         usleep(10000); //稍微等几毫秒
         $SlaveWorker = new Worker($que, $this->interval);
-		$SlaveWorker->masterPid=$this->masterPid;
+        $SlaveWorker->masterPid = $this->masterPid;
         return $SlaveWorker->startWork();
     }
 
