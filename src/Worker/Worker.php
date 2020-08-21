@@ -120,7 +120,7 @@ class Worker {
         } elseif ($pid == 0) {//子进程
             $this->procLine->EchoAndLog('用户APP子进程分离成功:' . $this->getMyPid() . PHP_EOL);
             $title = cli_get_process_title();
-            cli_set_process_title($title . ' doing:' . $job['id']);
+            cli_set_process_title($title . ' doing');
             $this->appStart($job);
             $this->procLine->EchoAndLog('用户APP子进程执行结束:' . $this->getMyPid() . PHP_EOL);
             exit(0); //这里必须退出子进程，这个0对应上边的pantl_wait的status
