@@ -9,7 +9,6 @@
  */
 define('LineQue', __DIR__);
 define('APP', __DIR__ . '/App');
-define('LOGPATH', LineQue . '/LineQue.log');
 
 require_once './Autoload.php';
 spl_autoload_register('\Yjtec\Linque\Autoload::autoload');

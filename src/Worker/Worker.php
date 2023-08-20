@@ -6,7 +6,6 @@ use Exception;
 use Yjtec\Linque\Config\Conf;
 use Yjtec\Linque\Lib\dbJobInstance;
 use Yjtec\Linque\Lib\ProcLine;
-use const LOGPATH;
 
 /**
  * 执行job的子进程
@@ -19,7 +18,8 @@ use const LOGPATH;
  * @link https://github.com/kk1987n/LineQue.git
  * @version 1.0.0
  */
-class Worker {
+class Worker
+{
 
     private $Que; //队列名
     private $interval; //循环时间间隔
@@ -27,23 +27,27 @@ class Worker {
     private $procLine = null; //日志记录
     private $system;
     public $masterPid;
+    private $logPath = "";
 
-    public function __construct($Que, $interval) {
+    public function __construct($Que, $interval, $logPath = "")
+    {
+        $this->logPath = $logPath ? $logPath : dirname(__FILE__) . '/../linque.log';
         $this->Que = $Que;
         $this->interval = $interval;
         $this->DbInstance = new dbJobInstance();
-        $this->procLine = new ProcLine(LOGPATH);
+        $this->procLine = new ProcLine($this->logPath);
         $this->system = Conf::getSystemPlatform();
     }
 
-    public function startWork() {
+    public function startWork()
+    {
         //此处已经是子进程的子进程了,可以在此处进行下一步逻辑了
         $this->procLine->EchoAndLog('队列主进程开始守护，PID=' . $this->getMyPid() . PHP_EOL);
         while (1) {
             if ($this->isParentDead()) {
                 return true;
             }
-//            pcntl_signal_dispatch(); //查看信号队列
+            //            pcntl_signal_dispatch(); //查看信号队列
             if ($job = $this->getAJob()) {
                 $this->procLine->EchoAndLog('队列主进程(' . $this->getMyPid() . ')获取到Job:' . json_encode($job) . PHP_EOL);
                 try {
@@ -63,7 +67,8 @@ class Worker {
      * @param type $job
      * @return boolean
      */
-    private function getAJob() {
+    private function getAJob()
+    {
         $job = $this->DbInstance->popJob($this->Que);
         if (!$job) {
             return false;
@@ -77,7 +82,8 @@ class Worker {
      * @param type $job
      * @return boolean
      */
-    public function run($job) {
+    public function run($job)
+    {
         $this->procLine->EchoAndLog('用户APP准备执行:' . $job['id'] . PHP_EOL);
         $this->DbInstance->workingOn($job); //开始执行
         try {
@@ -107,17 +113,18 @@ class Worker {
      * @param type $job
      * @return boolean
      */
-    public function forkProc($job) {
+    public function forkProc($job)
+    {
         $this->procLine->EchoAndLog('队列主进程(' . $this->getMyPid() . ')准备分离出用户APP子进程执行任务:' . $job['id'] . PHP_EOL);
         $pid = pcntl_fork();
-        if ($pid > 0) {//原进程，拿到子进程的pid
+        if ($pid > 0) { //原进程，拿到子进程的pid
             $status = null;
             $exitPid = pcntl_wait($status); //等待子进程的信号
             $this->procLine->EchoAndLog('队列主进程获取到用户APP子进程执行完成信号:' . $status . ',exitPid:' . $exitPid . PHP_EOL);
             if ($exitPid && $status == 0) {
                 return true;
             }
-        } elseif ($pid == 0) {//子进程
+        } elseif ($pid == 0) { //子进程
             $this->procLine->EchoAndLog('用户APP子进程分离成功:' . $this->getMyPid() . PHP_EOL);
             $title = cli_get_process_title();
             cli_set_process_title($title . ' doing');
@@ -128,7 +135,8 @@ class Worker {
         return false;
     }
 
-    public function appStart($job) {
+    public function appStart($job)
+    {
         $instance = $this->getAppInstance($job);
         if ($instance && is_callable(array($instance, 'before'))) {
             $this->procLine->EchoAndLog('用户APP开始执行before方法' . PHP_EOL);
@@ -156,7 +164,8 @@ class Worker {
      * @throws Exception
      * @throws Exception
      */
-    public function getAppInstance($job) {
+    public function getAppInstance($job)
+    {
         if (!class_exists($job['class'])) {
             $this->procLine->EchoAndLog('找不到用户APP:' . $job['class'] . PHP_EOL);
             return false;
@@ -168,11 +177,13 @@ class Worker {
         return new $job['class']($job); //实例化job
     }
 
-    public function getMyPid() {
+    public function getMyPid()
+    {
         return $this->system == 'linux' ? posix_getpid() : getmypid();
     }
 
-    public function isParentDead() {
+    public function isParentDead()
+    {
         if ($this->system == 'linux' && is_callable("exec") && $this->masterPid) {
             $cmd = "ps -ef| grep " . $this->getMyPid() . "|grep -v grep|awk '{print$3}'";
             exec($cmd, $str, $re);
@@ -183,5 +194,4 @@ class Worker {
         }
         return false;
     }
-
 }

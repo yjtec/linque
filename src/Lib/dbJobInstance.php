@@ -4,7 +4,6 @@ namespace Yjtec\Linque\Lib;
 
 use Yjtec\Linque\Config\Conf;
 use Yjtec\Linque\Lib\Redis\RedisDb;
-use const LOGPATH;
 
 /**
  * 这一层是数据库和worker/jober中间的连接层
@@ -17,7 +16,8 @@ use const LOGPATH;
  * @link https://github.com/kk1987n/LineQue.git
  * @version 1.0.0
  */
-class dbJobInstance {
+class dbJobInstance
+{
 
     /**
      * 数据库实例
@@ -25,13 +25,16 @@ class dbJobInstance {
      */
     private $dbInstance = null;
     private $procLine = null;
+    private $logPath = null;
 
     /**
      * 初始化数据库控制
      */
-    public function __construct() {
+    public function __construct($logPath = "")
+    {
+        $this->logPath = $logPath ? $logPath : dirname(__FILE__) . '/../linqeu.log';
         $this->dbInstance = $this->doDbInstance();
-        $this->procLine = @new ProcLine((preg_match("/cli/i", php_sapi_name()) && defined(LOGPATH) ? LOGPATH : null));
+        $this->procLine = @new ProcLine((preg_match("/cli/i", php_sapi_name()) && $this->logPath));
     }
 
     /**
@@ -39,7 +42,8 @@ class dbJobInstance {
      * @param type $queue
      * @return type
      */
-    public function getJob($queue) {
+    public function getJob($queue)
+    {
         return $this->dbInstance->getJob($queue);
     }
 
@@ -48,7 +52,8 @@ class dbJobInstance {
      * @param type $queue
      * @return type
      */
-    public function popJob($queue) {
+    public function popJob($queue)
+    {
         return $this->dbInstance->popJob($queue);
     }
 
@@ -57,7 +62,8 @@ class dbJobInstance {
      * @param type $job
      * @return type
      */
-    public function workingOn($job) {
+    public function workingOn($job)
+    {
         $this->updateStat(Status::STATUS_WAITING, false); //开始,watting统计-1
         return $this->updateJobStatus($job, Status::STATUS_RUNNING);
     }
@@ -67,7 +73,8 @@ class dbJobInstance {
      * @param type $job
      * @return type
      */
-    public function workingFail($job) {
+    public function workingFail($job)
+    {
         $this->updateStat(Status::STATUS_RUNNING, false); //失败,running统计-1
         return $this->updateJobStatus($job, Status::STATUS_FAILED);
     }
@@ -77,7 +84,8 @@ class dbJobInstance {
      * @param type $job
      * @return type
      */
-    public function workingDone($job) {
+    public function workingDone($job)
+    {
         $this->updateStat(Status::STATUS_RUNNING, false); //成功,running统计-1
         return $this->updateJobStatus($job, Status::STATUS_COMPLETE);
     }
@@ -88,8 +96,9 @@ class dbJobInstance {
      * @param type $status
      * @return type
      */
-    private function updateJobStatus($job, $status) {
-        if ($status == Status::STATUS_COMPLETE || $status == Status::STATUS_FAILED) {//成功/失败之后,删除running的job
+    private function updateJobStatus($job, $status)
+    {
+        if ($status == Status::STATUS_COMPLETE || $status == Status::STATUS_FAILED) { //成功/失败之后,删除running的job
             $this->dbInstance->delByJobid($job['id'], Status::STATUS_RUNNING);
         }
         $this->updateStat($status);
@@ -104,7 +113,8 @@ class dbJobInstance {
      * @param type $step
      * @return type
      */
-    private function updateStat($status, $inc = true, $step = 1) {
+    private function updateStat($status, $inc = true, $step = 1)
+    {
         if ($inc) {
             return $this->dbInstance->incrStat($status, $step);
         } else {
@@ -119,7 +129,8 @@ class dbJobInstance {
      * @param type $args
      * @return type
      */
-    public function addJob($queue, $class, $args = null) {
+    public function addJob($queue, $class, $args = null)
+    {
         if (!$queue) {
             return false;
         }
@@ -135,7 +146,8 @@ class dbJobInstance {
      * @param type $queue
      * @return boolean
      */
-    public function get100Jobs($queue) {
+    public function get100Jobs($queue)
+    {
         if (!$queue) {
             return false;
         }
@@ -147,7 +159,8 @@ class dbJobInstance {
      * @param type $queue
      * @return type
      */
-    public function getListLen($queue) {
+    public function getListLen($queue)
+    {
         return $this->dbInstance->getListLen($queue);
     }
 
@@ -156,7 +169,8 @@ class dbJobInstance {
      * @param type $config
      * @return RedisDb
      */
-    public function doDbInstance() {
+    public function doDbInstance()
+    {
         $dbConf = Conf::getConfig();
         if ($dbConf) {
             $Dbtype = ucfirst(strtolower($dbConf['DBTYPE']));
@@ -166,5 +180,4 @@ class dbJobInstance {
             die('数据库配置无效');
         }
     }
-
 }

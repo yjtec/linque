@@ -4,7 +4,6 @@ namespace Yjtec\Linque\Worker;
 
 use \Yjtec\Linque\Config\Conf;
 use \Yjtec\Linque\Lib\ProcLine;
-use const LOGPATH;
 
 /**
  * 主进程,用以保护实际执行job的子进程
@@ -23,15 +22,17 @@ class Master {
 //    private $slavePid = 0; //子进程pid
     private $procLine; //日志处理类
     private $system;
+    private $logPath;
 
-    public function __construct($Que, $interval = 5, $daemonize = 0) {
+    public function __construct($Que, $interval = 5, $daemonize = 0,$logPath = null) {
+        $this->logPath = $logPath ? $logPath : dirname(__FILE__) . '/../linque.log';
         $this->Que = strpos($Que, ',') === false ? array($Que) : explode(',', $Que);
         foreach ($this->Que as &$queue) {
             $queue = array('que' => $queue, 'pid' => 0);
         }
         $this->interval = $interval ? $interval : 5;
         $this->daemonize = $daemonize;
-        $this->procLine = new ProcLine(LOGPATH);
+        $this->procLine = new ProcLine($this->logPath);
         $this->system = Conf::getSystemPlatform();
     }
 
@@ -125,7 +126,7 @@ class Master {
         }
         $this->procLine->initDisplay("Queue:" . implode(',', $questr));
         $this->procLine->initDisplay("Interval:" . $this->interval . 's');
-        $this->procLine->initDisplay("LogPath:" . LOGPATH);
+        $this->procLine->initDisplay("LogPath:" . $this->logPath);
         $this->procLine->initDisplay("─数据库配置────────────────────────────────────────────────────────");
         $config = Conf::getConfig();
         foreach ($config as $k => $v) {

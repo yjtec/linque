@@ -19,7 +19,6 @@ if (!class_exists('\\Redis', false)) {
 $QUE = getenv('QUE'); //队列名
 $INTERVAL = getenv('INTV'); //worker循环间隔
 $queue = $QUE ? $QUE : 'default'; //默认队列名
-define('LOGPATH', LineQue . '/LineQue_' . $queue . '.log'); //系统日志文件路径,默认放在框架目录下
 
 require_once __DIR__ . '/Lib/Autoload.php';
 
