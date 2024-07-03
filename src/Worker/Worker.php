@@ -43,6 +43,7 @@ class Worker
     {
         //此处已经是子进程的子进程了,可以在此处进行下一步逻辑了
         $this->procLine->EchoAndLog('队列主进程开始守护，PID=' . $this->getMyPid() . PHP_EOL);
+        $title = cli_get_process_title();
         while (1) {
             if ($this->isParentDead()) {
                 return true;
@@ -51,7 +52,9 @@ class Worker
             if ($job = $this->getAJob()) {
                 $this->procLine->EchoAndLog('队列主进程(' . $this->getMyPid() . ')获取到Job:' . json_encode($job) . PHP_EOL);
                 try {
+                    cli_set_process_title($title . ' doing');
                     $this->run($job); //执行
+                    cli_set_process_title($title);
                 } catch (Exception $ex) {
                     $this->procLine->EchoAndLog('队列主进程(' . $this->getMyPid() . ')执行Job发生异常:' . json_encode($ex) . PHP_EOL);
                 }
