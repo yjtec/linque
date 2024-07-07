@@ -17,10 +17,10 @@ if (!class_exists('\\Redis', false)) {
 }
 $QUE = getenv('QUE'); //队列名
 $INTERVAL = getenv('INTV'); //worker循环间隔
-$queue = $QUE ? $QUE : 'default'; //默认队列名
+$queue = $QUE ? $QUE : 'defaults'; //默认队列名
 
 require_once './Autoload.php';
 spl_autoload_register('\Yjtec\Linque\Autoload::autoload');
 
-$worker = new \Yjtec\Linque\Worker\Master($queue, $INTERVAL > 0 ? $INTERVAL : 5, 0); //主进程
+$worker = new \Yjtec\Linque\Worker\Master($queue, $INTERVAL > 0 ? $INTERVAL : 5, 0, null, 'Yjtec\\Linque\\App\\Monitor'); //主进程
 $worker->startWork();

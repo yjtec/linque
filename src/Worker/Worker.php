@@ -42,7 +42,7 @@ class Worker
     public function startWork()
     {
         //此处已经是子进程的子进程了,可以在此处进行下一步逻辑了
-        $this->procLine->EchoAndLog('队列主进程开始守护，PID=' . $this->getMyPid() . PHP_EOL);
+        $this->procLine->EchoAndLog('队列进程开始守护，PID=' . $this->getMyPid() . PHP_EOL);
         $title = cli_get_process_title();
         while (1) {
             if ($this->isParentDead()) {
@@ -50,15 +50,15 @@ class Worker
             }
             //            pcntl_signal_dispatch(); //查看信号队列
             if ($job = $this->getAJob()) {
-                $this->procLine->EchoAndLog('队列主进程(' . $this->getMyPid() . ')获取到Job:' . json_encode($job) . PHP_EOL);
+                $this->procLine->EchoAndLog('队列进程(' . $this->getMyPid() . ')获取到Job:' . json_encode($job) . PHP_EOL);
                 try {
                     cli_set_process_title($title . ' doing');
                     $this->run($job); //执行
                     cli_set_process_title($title);
                 } catch (Exception $ex) {
-                    $this->procLine->EchoAndLog('队列主进程(' . $this->getMyPid() . ')执行Job发生异常:' . json_encode($ex) . PHP_EOL);
+                    $this->procLine->EchoAndLog('队列进程(' . $this->getMyPid() . ')执行Job发生异常:' . json_encode($ex) . PHP_EOL);
                 }
-                $this->procLine->EchoAndLog('队列主进程(' . $this->getMyPid() . ')执行Job结束:' . $job['id'] . PHP_EOL);
+                $this->procLine->EchoAndLog('队列进程(' . $this->getMyPid() . ')执行Job结束:' . $job['id'] . PHP_EOL);
             }
 
             usleep($this->interval * 1000000); //休眠多少秒
@@ -123,7 +123,7 @@ class Worker
         if ($pid > 0) { //原进程，拿到子进程的pid
             $status = null;
             $exitPid = pcntl_wait($status); //等待子进程的信号
-            $this->procLine->EchoAndLog('队列主进程获取到用户APP子进程执行完成信号:' . $status . ',exitPid:' . $exitPid . PHP_EOL);
+            $this->procLine->EchoAndLog('队列进程获取到用户APP子进程执行完成信号:' . $status . ',exitPid:' . $exitPid . PHP_EOL);
             if ($exitPid && $status == 0) {
                 return true;
             }

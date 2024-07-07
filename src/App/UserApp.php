@@ -19,15 +19,15 @@ class UserApp implements AppInterface {
     }
 
     public function before() {
-        echo 'before' . PHP_EOL;
+        echo 'que before' . PHP_EOL;
     }
 
     public function run() {
-        echo 'run' . PHP_EOL;
+        echo 'que run' . PHP_EOL;
     }
 
     public function after() {
-        echo 'after' . PHP_EOL;
+        echo 'que after' . PHP_EOL;
     }
 
 }

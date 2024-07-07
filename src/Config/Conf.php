@@ -34,7 +34,7 @@ class Conf {
             'HOST' => isset(self::$Config['HOST']) && self::$Config['HOST'] ? self::$Config['HOST'] : '127.0.0.1',
             'PORT' => isset(self::$Config['PORT']) && self::$Config['PORT'] ? self::$Config['PORT'] : 6379,
             'PWD' => isset(self::$Config['PWD']) && self::$Config['PWD'] ? self::$Config['PWD'] : '',
-            'DBNAME' => isset(self::$Config['DBNAME']) && self::$Config['DBNAME'] ? self::$Config['DBNAME'] : '3',
+            'DBNAME' => isset(self::$Config['DBNAME']) && self::$Config['DBNAME'] ? self::$Config['DBNAME'] : '7',
         );
     }
 
