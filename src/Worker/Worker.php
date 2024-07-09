@@ -177,7 +177,7 @@ class Worker
             $this->procLine->EchoAndLog('用户APP找不到run方法:' . $job['class'] . PHP_EOL, "slave:" . $this->Que);
             return false;
         }
-        return new $job['class']($job); //实例化job
+        return new $job['class']($job, $this->Que); //实例化job
     }
 
     public function getMyPid()
