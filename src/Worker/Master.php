@@ -54,6 +54,11 @@ class Master
             $this->displayUI(); //显示方框
             $procTitle = 'linque ' . implode(' ', $_SERVER['argv']);
             cli_set_process_title($procTitle . '(master)');
+            usleep(100000); //稍微等几毫秒
+            if ($this->checkProcess($procTitle . '(master)')) {
+                $this->procLine->EchoAndLog("已存在相同进程正在运行，请退出后重试：" . $procTitle . PHP_EOL);
+                exit();
+            }
             while (1) {
                 foreach ($this->Que as &$queue) {
                     if (!$queue['pid']) {
@@ -100,7 +105,7 @@ class Master
         $pid = pcntl_fork();
         if ($pid == 0) { //监视器进程
             cli_set_process_title($procTitle . '(monitor)');
-            usleep(10000); //稍微等几毫秒
+            usleep(100000); //稍微等几毫秒
             $MonitorObj = new Monitor($this->monitor, $this->interval);
             $MonitorObj->masterPid = $this->masterPid;
             $MonitorObj->startWork();
@@ -141,7 +146,7 @@ class Master
      */
     public function slaverProcess($que)
     {
-        usleep(10000); //稍微等几毫秒
+        usleep(100000); //稍微等几毫秒
         $SlaveWorker = new Worker($que, $this->interval);
         $SlaveWorker->masterPid = $this->masterPid;
         return $SlaveWorker->startWork();
@@ -180,6 +185,17 @@ class Master
         $this->procLine->displayUI();
     }
 
+    public function checkProcess($processName)
+    {
+        if ($this->system == 'linux' && is_callable("exec") && $this->masterPid) {
+            $cmd = "ps -ef| grep '" . $processName . "'|grep -v grep|awk '{print$2}'";
+            exec($cmd, $str, $re);
+            if ($re != 0 || !$str || !isset($str[0]) || $this->masterPid != intval($str[0])) {
+                return true;
+            }
+        }
+        return false;
+    }
     /////////////////////////////乱七八糟的方法
     //    /**
     //     * 注册信号
