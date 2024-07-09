@@ -16,6 +16,7 @@ use \Yjtec\Linque\Lib\ProcLine;
 class Master
 {
 
+    const VERSION = '2.0.0';
     private $Que; //队列名
     private $interval; //主进程和子进程的循环间隔
     private $daemonize; //脱离终端,这个东西有毛病,暂时没启用
@@ -56,7 +57,7 @@ class Master
             cli_set_process_title($procTitle . '(master)');
             usleep(100000); //稍微等几毫秒
             if ($this->checkProcess($procTitle . '(master)')) {
-                $this->procLine->EchoAndLog("已存在相同进程正在运行，请退出后重试：" . $procTitle . PHP_EOL);
+                $this->procLine->EchoAndLog("已存在相同进程正在运行，请退出后重试：" . $procTitle . PHP_EOL, "master");
                 exit();
             }
             while (1) {
@@ -68,9 +69,9 @@ class Master
                             return $this->slaverProcess($queue['que']); //子进程
                         } elseif ($pid > 0) { //原始主进程
                             $queue['pid'] = $pid;
-                            $this->procLine->EchoAndLog("创建队列进程成功，Pid=" . $pid . ',监控队列' . $queue['que'] . PHP_EOL);
+                            $this->procLine->EchoAndLog("创建队列进程成功，Pid=" . $pid . ',监控队列' . $queue['que'] . PHP_EOL, "master");
                         } else {
-                            $this->procLine->EchoAndLog('创建队列进程出错,请检查PHP配置' . PHP_EOL);
+                            $this->procLine->EchoAndLog('创建队列进程出错,请检查PHP配置' . PHP_EOL, "master");
                             exit(0);
                         }
                     }
@@ -95,11 +96,11 @@ class Master
     public function masterMonitor($procTitle)
     {
         if (!$this->monitor) {
-            $this->procLine->EchoAndLog("用户未传入监视器类，无需创建监视器" . PHP_EOL);
+            $this->procLine->EchoAndLog("用户未传入监视器类，无需创建监视器" . PHP_EOL, "master");
             return false;
         }
         if (!class_exists($this->monitor)) {
-            $this->procLine->EchoAndLog("用户传入监视器类不存在，传入参数" . $this->monitor . PHP_EOL);
+            $this->procLine->EchoAndLog("用户传入监视器类不存在，传入参数" . $this->monitor . PHP_EOL, "master");
             return false;
         }
         $pid = pcntl_fork();
@@ -112,7 +113,7 @@ class Master
             exit(); //此处务必退出，否则会影响原始主进程后续代码
         } elseif ($pid > 0) { //原始主进程
             $this->monitorPid = $pid;
-            $this->procLine->EchoAndLog("创建监视器进程成功，Pid=" . $pid . '，用户应用：' . $this->monitor . PHP_EOL);
+            $this->procLine->EchoAndLog("创建监视器进程成功，Pid=" . $pid . '，用户应用：' . $this->monitor . PHP_EOL, "master");
         }
     }
     /**
@@ -127,7 +128,7 @@ class Master
         //        pcntl_signal_dispatch();
         $exitPid = pcntl_wait($status);
         if ($exitPid > 0) { //$pid退出的子进程的编号
-            $this->procLine->log('队列进程意外退出Pid=' . $exitPid . '退出信号' . $status . PHP_EOL);
+            $this->procLine->log('队列进程意外退出Pid=' . $exitPid . '退出信号' . $status . PHP_EOL, "master");
             foreach ($this->Que as &$queue) {
                 if ($queue['pid'] == $exitPid) {
                     $queue['pid'] = 0;

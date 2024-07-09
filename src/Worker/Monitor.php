@@ -41,7 +41,7 @@ class Monitor
     public function startWork()
     {
         //此处已经是子进程的子进程了,可以在此处进行下一步逻辑了
-        $this->procLine->EchoAndLog('监控进程开始守护，PID=' . $this->getMyPid() . PHP_EOL);
+        $this->procLine->EchoAndLog('监控进程开始守护，PID=' . $this->getMyPid() . PHP_EOL, "monitor");
         $title = cli_get_process_title();
         while (1) {
             if ($this->isParentDead()) {
@@ -52,7 +52,7 @@ class Monitor
                 $this->appStart(); //执行
                 cli_set_process_title($title);
             } catch (Exception $ex) {
-                $this->procLine->EchoAndLog('队列主进程(' . $this->getMyPid() . ')执行Job发生异常:' . json_encode($ex) . PHP_EOL);
+                $this->procLine->EchoAndLog('队列主进程(' . $this->getMyPid() . ')执行Job发生异常:' . json_encode($ex) . PHP_EOL, "monitor");
             }
 
             usleep($this->interval * 1000000); //休眠多少秒
@@ -87,15 +87,15 @@ class Monitor
             return $this->appInstance;
         }
         if (!class_exists($this->app)) {
-            $this->procLine->EchoAndLog('找不到用户APP:' . $this->app . PHP_EOL);
+            $this->procLine->EchoAndLog('找不到用户APP:' . $this->app . PHP_EOL, "monitor");
             return false;
         }
         if (!method_exists($this->app, 'run')) {
-            $this->procLine->EchoAndLog('用户APP找不到run方法:' . $this->app . PHP_EOL);
+            $this->procLine->EchoAndLog('用户APP找不到run方法:' . $this->app . PHP_EOL, "monitor");
             return false;
         }
         $this->appInstance = new $this->app();
-        $this->procLine->EchoAndLog('用户APP实例化成功：' . $this->app . PHP_EOL);
+        $this->procLine->EchoAndLog('用户APP实例化成功：' . $this->app . PHP_EOL, "monitor");
         return $this->appInstance; //实例化job
     }
 
@@ -110,7 +110,7 @@ class Monitor
             $cmd = "ps -ef| grep " . $this->getMyPid() . "|grep -v grep|awk '{print$3}'";
             exec($cmd, $str, $re);
             if ($re != 0 || !$str || !isset($str[0]) || $this->masterPid != intval($str[0])) {
-                $this->procLine->EchoAndLog('未检测到父进程，父进程ID：' . $this->masterPid . '，子进程将退出：' . $this->getMyPid() . "，命令：" . $cmd . "，进程参数：" . json_encode($str) . PHP_EOL);
+                $this->procLine->EchoAndLog('未检测到父进程，父进程ID：' . $this->masterPid . '，子进程将退出：' . $this->getMyPid() . "，命令：" . $cmd . "，进程参数：" . json_encode($str) . PHP_EOL, "monitor");
                 return true;
             }
         }

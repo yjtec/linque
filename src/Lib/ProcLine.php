@@ -2,6 +2,8 @@
 
 namespace Yjtec\Linque\Lib;
 
+use Yjtec\Linque\Worker\Master;
+
 /**
  * 显示命令行
  * 记录日志
@@ -11,12 +13,14 @@ namespace Yjtec\Linque\Lib;
  * @link https://github.com/kk1987n/LineQue.git
  * @version 1.0.0
  */
-class ProcLine {
+class ProcLine
+{
 
     private $logFile;
     private $initDisplay = array();
 
-    public function __construct($logFile = null) {
+    public function __construct($logFile = null)
+    {
         $this->logFile = $logFile;
     }
 
@@ -25,9 +29,10 @@ class ProcLine {
      *
      * @return void
      */
-    public function displayUI() {
+    public function displayUI()
+    {
         $this->EchoAndLog("┌───────────────────────────── LineQue ─────────────────────────────┐" . PHP_EOL);
-        $this->EchoAndLog("├───────────────────────────────────────────── LineQueVersion:1.0.0 ┤" . PHP_EOL);
+        $this->EchoAndLog("├───────────────────────────────────────────── LineQueVersion:" . Master::VERSION . " ┤" . PHP_EOL);
         $this->EchoAndLog("│感谢您选择LineQue                                                  │" . PHP_EOL);
         $this->EchoAndLog("│LineQue是一款基于PHP的简单队列程序                                 │" . PHP_EOL);
         $this->EchoAndLog("│本程序参考了很多PHP_RESQUE思想                                     │" . PHP_EOL);
@@ -38,17 +43,19 @@ class ProcLine {
         $this->initDisplay = null;
     }
 
-    private function showInitDisplay() {
+    private function showInitDisplay()
+    {
         foreach ($this->initDisplay as $string) {
             $lenth = strlen($string);
-            for ($i = 0; $i < 67 - $lenth; $i++) {//结尾字符串补充这么多空格
+            for ($i = 0; $i < 67 - $lenth; $i++) { //结尾字符串补充这么多空格
                 $string .= ' ';
             }
             $this->EchoAndLog("│" . $string . "│" . PHP_EOL);
         }
     }
 
-    public function initDisplay($string) {
+    public function initDisplay($string)
+    {
         $this->initDisplay[] = $string;
     }
 
@@ -57,8 +64,9 @@ class ProcLine {
      *
      * @param $msg
      */
-    public function EchoAndLog($msg) {
-        echo '[' . date('Y/m/d H:i:s') . ']linque ' . $msg;
+    public function EchoAndLog($msg, $type = "")
+    {
+        echo '[' . date('Y/m/d H:i:s') . ']' . ($type ? "[" . $type . "]" : "") . 'linque ' . $msg;
         $this->log($msg);
     }
 
@@ -68,10 +76,10 @@ class ProcLine {
      * @param string $msg
      * @return void
      */
-    public function log($msg) {
+    public function log($msg)
+    {
         if ($this->logFile) {
             file_put_contents((string) $this->logFile, '[' . date('Y/m/d H:i:s') . ']linque ' . ' ' . $msg, FILE_APPEND | LOCK_EX);
         }
     }
-
 }
